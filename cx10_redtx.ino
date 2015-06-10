@@ -37,10 +37,11 @@
 #include <SPI.h>
 
 // Function prototypes
-void send_packet( bool );
+void send_packet(bool);
 void write_payload(uint8_t *data, uint8_t len, bool noack);
-void set_cmmd_addr( void );
-void set_bind_addr( void );
+void set_cmmd_addr(void);
+void set_bind_addr(void);
+int packwait(void);
 
 // Radio and register defines
 #define RF_CHANNEL      0x3C  // Stock TX fixed frequency
@@ -83,9 +84,7 @@ uint8_t packet[PAYLOADSIZE];
 uint8_t throttle, rudder, elevator, aileron, rudder_trim, elevator_trim, aileron_trim, flags;
 
 // setup initalises nrf24, attempts to bind, then moves on
-void setup() 
-{
- 
+void setup() {
   
   // Initialise SPI bus and activate radio in RX mode
   nrf24.init();
@@ -135,33 +134,28 @@ void setup()
   
   set_bind_addr();
 
-  for(int packno = 0; packno < 60; packno++)
-  {
+  for(int packno = 0; packno < 60; packno++) {
     send_packet(true);
     
-    switch(packwait()) 
-    {
-     case PKT_ERROR:
-       while(1);
-       break;
+    switch( packwait() ) {
+      case PKT_ERROR:
+        while(1);
+        break;
      
-     case PKT_ACK: 
-       break;
+      case PKT_ACK: 
+        break;
      
-     case PKT_TIMEOUT:
-       break;
+      case PKT_TIMEOUT:
+        break;
     }
   }
-    
+  
   set_cmmd_addr();
-  
-  
 }
 
 
 // loop repeatedly sends data read by PPM to the device, every 8ms
-void loop()
-{
+void loop() {
   uint8_t aux1 = 0;
   
   // Get RX values by PPM, convert to range 0x00 to 0xFF
@@ -182,16 +176,13 @@ void loop()
   // firmware, or arming (via elevator) in FN firmware
   if(aux1 > 0x80) {
     flags = 0x0F;      
-  }
-  else {
+  } else {
     flags = 0x00;
   }
    
-  
   // Send a data packet and find out what happens
   send_packet(false);
-  switch(packwait()) 
-  {
+  switch( packwait() ) {
    // Device not in TX mode, how did this happen?
    case PKT_ERROR_IN_RX:
      while(1);
@@ -208,73 +199,67 @@ void loop()
   
   // Wait for 8ms, before sending next data
   delay(8);
-  
 }
 
 // send_packet constructs a packet and dispatches to radio
-void send_packet( bool bind )
-{
-    // bind: send first four bytes of command address in the packet
-    //       the final byte is set automatically to 0xC1 by CX-10.
-    if (bind) {
-        packet[0]= rx_tx_cmmd[0];
-        packet[1]= rx_tx_cmmd[1];
-        packet[2]= rx_tx_cmmd[2];
-        packet[3]= rx_tx_cmmd[3];
-        packet[4] = 0x56;
-        packet[5] = 0xAA;
-        packet[6] = 0x32;
-        packet[7] = 0x00;
-    }
+void send_packet( bool bind ) {
+  // bind: send first four bytes of command address in the packet
+  //       the final byte is set automatically to 0xC1 by CX-10.
+  if (bind) {
+    packet[0]= rx_tx_cmmd[0];
+    packet[1]= rx_tx_cmmd[1];
+    packet[2]= rx_tx_cmmd[2];
+    packet[3]= rx_tx_cmmd[3];
+    packet[4] = 0x56;
+    packet[5] = 0xAA;
+    packet[6] = 0x32;
+    packet[7] = 0x00;
+  } else {
     // cmnd: send RX commands present in the global variables 
-    else {
-        
-        packet[0] = throttle;
-        packet[1] = rudder;
-        packet[3] = elevator;
-        packet[4] = aileron;
-        packet[2] = rudder_trim;
-        packet[5] = elevator_trim;
-        packet[6] = aileron_trim;
-        packet[7] = flags;
-    }
+    packet[0] = throttle;
+    packet[1] = rudder;
+    packet[3] = elevator;
+    packet[4] = aileron;
+    packet[2] = rudder_trim;
+    packet[5] = elevator_trim;
+    packet[6] = aileron_trim;
+    packet[7] = flags;
+  }
 
-    // clear packet status bits and TX FIFO
-    nrf24.spiWriteRegister( NRF24_REG_07_STATUS, NRF_STATUS_CLEAR );
-    nrf24.flushTx();
-    
-    // Form checksum (my modified CX-10 firmware doesnt care)
-    packet[8] = packet[0];  
-    for(uint8_t i=1; i < 8; i++) packet[8] += packet[i];
-    packet[8] = ~packet[8];
+  // clear packet status bits and TX FIFO
+  nrf24.spiWriteRegister( NRF24_REG_07_STATUS, NRF_STATUS_CLEAR );
+  nrf24.flushTx();
+  
+  // Form checksum (my modified CX-10 firmware doesnt care)
+  packet[8] = packet[0];  
+  for(uint8_t i=1; i < 8; i++)
+    packet[8] += packet[i];
+  packet[8] = ~packet[8];
 
-    // Transmit, requesting acknowledgement
-    write_payload(packet, 9, false);
-
+  // Transmit, requesting acknowledgement
+  write_payload(packet, 9, false);
 }
 
 // write_payload issues the send command to the nrf24 library
-void write_payload(uint8_t *data, uint8_t len, bool noack)
-{
+void write_payload(uint8_t *data, uint8_t len, bool noack) {
   nrf24.spiBurstWrite(noack ? NRF24_COMMAND_W_TX_PAYLOAD_NOACK : NRF24_COMMAND_W_TX_PAYLOAD, data, len);
 }
 
 // packwait polls the nrf24 to determine what's happened to our data
-int packwait()
-{
-    // If we are currently in receive mode, then there is no packet to wait for
-    if (nrf24.spiReadRegister(NRF24_REG_00_CONFIG) & NRF24_PRIM_RX)
-	return PKT_ERROR_IN_RX;
+int packwait() {
+  // If we are currently in receive mode, then there is no packet to wait for
+  if (nrf24.spiReadRegister(NRF24_REG_00_CONFIG) & NRF24_PRIM_RX)
+    return PKT_ERROR_IN_RX;
 
-    // Wait for either the Data Sent or Max ReTries flag, signalling the 
-    // end of transmission
-    uint8_t status;
+  // Wait for either the Data Sent or Max ReTries flag, signalling the 
+  // end of transmission
+  uint8_t status;
     
-    while (!((status = nrf24.statusRead()) & (NRF24_TX_DS | NRF24_MAX_RT)));
+  while (!((status = nrf24.statusRead()) & (NRF24_TX_DS | NRF24_MAX_RT)));
     
-    nrf24.spiWriteRegister(NRF24_REG_07_STATUS, NRF24_TX_DS | NRF24_MAX_RT);
+  nrf24.spiWriteRegister(NRF24_REG_07_STATUS, NRF24_TX_DS | NRF24_MAX_RT);
     
-    switch(status &  (NRF24_TX_DS | NRF24_MAX_RT)) {
+  switch(status &  (NRF24_TX_DS | NRF24_MAX_RT)) {
     
     case NRF24_TX_DS:
       return PKT_ACK;  
@@ -284,22 +269,19 @@ int packwait()
       nrf24.flushTx();
       return PKT_TIMEOUT;
       break;
-    }
-    
-
-   return PKT_ERROR;
+  }
+  
+  return PKT_ERROR;
 }
 
  
-void set_cmmd_addr( void )
-{
+void set_cmmd_addr( void ) {
   nrf24.spiBurstWriteRegister( NRF24_REG_0A_RX_ADDR_P0,  rx_tx_cmmd, 5); 
   nrf24.spiBurstWriteRegister( NRF24_REG_10_TX_ADDR, rx_tx_cmmd, 5);                // Set command address  
   
 }
 
-void set_bind_addr( void )
-{
+void set_bind_addr( void ) {
   nrf24.spiBurstWriteRegister( NRF24_REG_0A_RX_ADDR_P0,  rx_tx_bind, 5);
   nrf24.spiBurstWriteRegister( NRF24_REG_10_TX_ADDR, rx_tx_bind, 5);                // Set command address  
 }
