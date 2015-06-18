@@ -11,13 +11,13 @@ Cheerson CX10 (red) Arduino PPM TX
  
 2. Setup
  
- Add NRF24 and RcTrainer libraries to your Arduino environment (redistributed in ./Libraries directory), connect NRF24 module to SPI bus according to http://www.airspayce.com/mikem/arduino/NRF24/, connect PPM trainer to input capture port according to http://www.airspayce.com/mikem/arduino/RcTrainer/.
+ ~~Add NRF24 and RcTrainer libraries to your Arduino environment (redistributed in ./Libraries directory)~~, connect NRF24 module to SPI bus according to http://www.airspayce.com/mikem/arduino/NRF24/, connect PPM trainer to input capture port according to http://www.airspayce.com/mikem/arduino/RcTrainer/.
  
 3. Operation
  
  + Configure TX to output PPM in TAER format, with AUX1 on channel 5.
  + Turn on CX10.
- + Toggle AUX1 (channel 5) high to bind.
+ + Put throttle to zero and toggle AUX1 (channel 5) high to bind.
  + Hold AUX1 high and apply full control sticks to allow arming and disarming on CX10_fnrf firmware, or to perform flips on original firmware.
  + Fly!
  

@@ -85,6 +85,8 @@ uint8_t throttle, rudder, elevator, aileron, rudder_trim, elevator_trim, aileron
 
 // setup initalises nrf24, attempts to bind, then moves on
 void setup() {
+  Serial.begin(57600);
+  Serial.write("# red-TX setup .. ");
   
   // Initialise SPI bus and activate radio in RX mode
   nrf24.init();
@@ -128,9 +130,11 @@ void setup() {
   nrf24.flushRx();
   nrf24.spiWriteRegister(NRF24_REG_07_STATUS, NRF_STATUS_CLEAR);
   
-  // White for aux1 high before binding
-  while(tx.getChannel(4, 1000, 2000, 0x00, 0xFF ) < 0x40);
+  // Waite for aux1 high before binding ### DEBUG ###
+  Serial.println("Waiting for ch5 < threshold and no throttle ..");
   
+  while( (tx.getChannel(4, 1000, 2000, 0x00, 0xFF) < 0x40) || (tx.getChannel(0, 1000, 2000, 0x00, 0xFF) != 0) );
+  Serial.println("binding..");
   
   set_bind_addr();
 
