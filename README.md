@@ -5,7 +5,7 @@ Cheerson CX10 (red) Arduino PPM TX
 
 1. About
  
- Arduino implementation of the Cheerson CX10 (red) protocol, with PPM input. Can be used to control CX10 flashed with CX10_fnrf firmware, should also work with stock firmware. Tested with Arduino Uno and Turnigy 9XR.
+ Arduino implementation of the Cheerson CX10 (red) protocol, with PPM input. Can be used to control CX10 flashed with CX10_fnrf firmware, should also work with stock firmware. Tested with Arduino Uno/Arduino Pro Mini and Turnigy 9XR.
  
  *NOTE: In principle, the CX10 protocol sends ACKnowledgements to bind and data packets. I am unable to receive these using an nRF24 module with microstrip antenna, and receive them only intermittently using an nRF24 module with PA/LNA. This suggests that there may be problems with the CX10 RF design, or that there is interference on the fixed RF channel. This implementation does not check for ACKnowledgements, and will thus bind and fly irrespective of confirmed packet transmission. Contact me if you have any ideas...*
  
@@ -15,10 +15,10 @@ Cheerson CX10 (red) Arduino PPM TX
  
 3. Operation
  
- + Configure TX to output PPM in TAER format, with AUX1 on channel 5.
+ + Configure TX to output PPM in TAER format, with AIL on channel 5 and TRN on channel 6.
  + Turn on CX10.
- + Put throttle to zero and toggle AUX1 (channel 5) high to bind.
- + Hold AUX1 high and apply full control sticks to allow arming and disarming on CX10_fnrf firmware, or to perform flips on original firmware.
+ + Put throttle to zero and toggle TRN (channel 6) high to bind.
+ + Hold AIL high and apply full control sticks to allow arming and disarming on CX10_fnrf firmware, or to perform flips on original firmware.
  + Fly!
  
 4. Credits

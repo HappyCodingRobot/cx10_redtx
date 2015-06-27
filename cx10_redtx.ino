@@ -133,7 +133,7 @@ void setup() {
   // Waite for aux1 high before binding ### DEBUG ###
   Serial.println("Waiting for ch5 < threshold and no throttle ..");
   
-  while( (tx.getChannel(4, 1000, 2000, 0x00, 0xFF) < 0x40) || (tx.getChannel(0, 1000, 2000, 0x00, 0xFF) != 0) );
+  while( (tx.getChannel(5, 1000, 2000, 0x00, 0xFF) < 0x40) || (tx.getChannel(0, 1000, 2000, 0x00, 0xFF) != 0) );
   Serial.println("binding..");
   
   set_bind_addr();
@@ -160,7 +160,8 @@ void setup() {
 
 // loop repeatedly sends data read by PPM to the device, every 8ms
 void loop() {
-  uint8_t aux1 = 0;
+  uint8_t aux1 = 0;     // AIL switch
+  uint8_t aux2 = 0;     // TRN switch
   
   // Get RX values by PPM, convert to range 0x00 to 0xFF
   throttle = (uint8_t) (tx.getChannel(0, 1000, 2000, 0x00, 0xFF ));
@@ -168,6 +169,7 @@ void loop() {
   elevator = (uint8_t) (tx.getChannel(2, 1000, 2000, 0x00, 0xFF ));
   rudder   = (uint8_t) (tx.getChannel(3, 1000, 2000, 0x00, 0xFF ));
   aux1     = (uint8_t) (tx.getChannel(4, 1000, 2000, 0x00, 0xFF ));
+  //aux2     = (uint8_t) (tx.getChannel(5, 1000, 2000, 0x00, 0xFF ));
   
   // Add command values to trim to get real full scale response 
   // in original CX-10 firmware (FN firmware ignores the trims, so
@@ -204,6 +206,7 @@ void loop() {
   // Wait for 8ms, before sending next data
   delay(8);
 }
+
 
 // send_packet constructs a packet and dispatches to radio
 void send_packet( bool bind ) {
