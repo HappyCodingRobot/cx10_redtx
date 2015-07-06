@@ -5,6 +5,8 @@
 #   SOURCES := main.cc other.cc
 #   LIBRARIES := EEPROM
 #
+#SOURCES := cx10_redtx.ino cx10.cpp
+#SOURCES := cx10.cpp
 LIBRARIES := SPI NRF24 RcTrainer
 BOARD := pro5v328
 SERIALDEV := /dev/ttyUSB0
