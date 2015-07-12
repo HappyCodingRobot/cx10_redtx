@@ -43,7 +43,7 @@ enum packet_state_e {
 
 //class NRF24;
 
-class CX10
+class CX10: public BASE_QUAD
 {
 public:
     //CX10();

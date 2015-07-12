@@ -13,15 +13,17 @@ uint8_t CX10::rx_tx_bind[5] = {0x65, 0x65, 0x65, 0x65, 0x65};
 
 //CX10::CX10(NRF24& _radio): radio(_radio), initialized(false), cmmd(0) {
 CX10::CX10(NRF24& _radio): radio(_radio), initialized(false) {
-  //
 }
+
+//CX10::~CX10() {
+//  delete packet;
+//}
 
 /**
  * 
  */
 void CX10::init(void) {
   if (!initialized) {
-    Serial.println("initialize..");
     initialized = true;
     // Initialise SPI bus and activate radio in RX mode
     radio.init();

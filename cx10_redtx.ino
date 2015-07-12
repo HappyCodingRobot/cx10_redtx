@@ -31,19 +31,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
+#define DEBUG
 
 #include <RcTrainer.h>
 #include <SPI.h>
 #include <NRF24.h>
 #include "redtx.h"
 #include "cx10.h"
-
-// Function prototypes
-//void send_packet(bool);
-//void write_payload(uint8_t *data, uint8_t len, bool noack);
-//void set_cmmd_addr(void);
-//void set_bind_addr(void);
-//int packwait(void);
 
 // Radio and register defines
 //#define RF_CHANNEL      0x3C  // Stock TX fixed frequency
@@ -73,7 +67,7 @@
 
 // Singleton instance of the radio and PPM receiver
 NRF24 nrf24;
-CX10 cx10(nrf24);
+BASE_QUAD* cx10;
 RcTrainer tx;
 
 
@@ -90,18 +84,35 @@ cmds_t cmd;
 
 // setup initalises nrf24, attempts to bind, then moves on
 void setup() {
+#ifdef DEBUG
   Serial.begin(57600);
-  Serial.println("# red-TX setup .. ");
-  
-  cx10.init();
+#endif
+  debugP("# red-TX setup .. ");
   
   // Wait for aux1 high before binding ### DEBUG ###
-  Serial.println("Waiting for ch5 < threshold and no throttle ..");
+  debugP("Waiting for ch5 (TRN) < threshold and no throttle ..");
   
   while( (tx.getChannel(5, 1000, 2000, 0x00, 0xFF) < 0x40) || (tx.getChannel(0, 1000, 2000, 0x00, 0xFF) != 0) );
-  Serial.println("start binding..");
+
+  // select quad model
+  uint8_t model = tx.getChannel(ch_3POS, 1000, 2000, 0x00, 0xFF);
+  if (model < 64) {
+    debugP("CX10 red selected");
+    cx10 = new CX10(nrf24);
+  } else if (model < 192) {
+    debugP("TBD: CX10A selected");
+    cx10 = new CX10(nrf24);
+  } else {
+    debugP("TDB: CX10 gree selected");
+    cx10 = new CX10(nrf24);
+  }
+  cx10 = new CX10(nrf24);
   
-  cx10.start_binding();
+  debugP("initialize..");
+  cx10->init();
+  
+  debugP("start binding..");
+  cx10->start_binding();
 }
 
 
@@ -111,12 +122,12 @@ void loop() {
   uint8_t aux2 = 0;     // TRN switch
   
   // Get RX values by PPM, convert to range 0x00 to 0xFF
-  cmd.throttle = (uint8_t) (tx.getChannel(0, 1000, 2000, 0x00, 0xFF ));
-  cmd.aileron  = (uint8_t) (tx.getChannel(1, 1000, 2000, 0x00, 0xFF ));
-  cmd.elevator = (uint8_t) (tx.getChannel(2, 1000, 2000, 0x00, 0xFF ));
-  cmd.rudder   = (uint8_t) (tx.getChannel(3, 1000, 2000, 0x00, 0xFF ));
-  aux1        = (uint8_t) (tx.getChannel(4, 1000, 2000, 0x00, 0xFF ));
-  aux2        = (uint8_t) (tx.getChannel(5, 1000, 2000, 0x00, 0xFF ));
+  cmd.throttle = (uint8_t) (tx.getChannel(ch_thr, 1000, 2000, 0x00, 0xFF ));
+  cmd.aileron  = (uint8_t) (tx.getChannel(ch_ail, 1000, 2000, 0x00, 0xFF ));
+  cmd.elevator = (uint8_t) (tx.getChannel(ch_ele, 1000, 2000, 0x00, 0xFF ));
+  cmd.rudder   = (uint8_t) (tx.getChannel(ch_rud, 1000, 2000, 0x00, 0xFF ));
+  aux1         = (uint8_t) (tx.getChannel(ch_AIL, 1000, 2000, 0x00, 0xFF ));
+  aux2         = (uint8_t) (tx.getChannel(ch_TRN, 1000, 2000, 0x00, 0xFF ));
   
   // Add command values to trim to get real full scale response 
   // in original CX-10 firmware (FN firmware ignores the trims, so
@@ -134,16 +145,13 @@ void loop() {
     cmd.flags = 0x00;
   }
   
-  cx10.setValues(&cmd);
+  cx10->setValues(&cmd);
   
   // Send a data packet and find out what happens
-  cx10.send_packet(false);
+  cx10->send_packet(false);
   
   // Wait for 8ms, before sending next data
-  delay(8);
-  //delay(cx10.get_pack_time());
+  //delay(8);
+  delay(cx10->get_pack_time());
 }
-
-
-
 
